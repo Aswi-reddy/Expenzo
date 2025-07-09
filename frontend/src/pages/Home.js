@@ -14,60 +14,26 @@ function Home() {
 
     const navigate = useNavigate();
 
+    // ✅ Fetch user info and expenses on component mount
     useEffect(() => {
-        setLoggedInUser(localStorage.getItem('loggedInUser'));
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('loggedInUser');
+
+        if (!token || !user) {
+            navigate('/login');
+        } else {
+            setLoggedInUser(user);
+            fetchExpenses();
+        }
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('loggedInUser');
-        handleSuccess('User Logged out');
-        setTimeout(() => {
-            navigate('/login');
-        }, 1000);
-    };
-
-    useEffect(() => {
-        const amounts = expenses.map(item => item.amount);
-        const income = amounts.filter(item => item > 0)
-            .reduce((acc, item) => acc + item, 0);
-        const exp = amounts.filter(item => item < 0)
-            .reduce((acc, item) => acc + item, 0) * -1;
-        setIncomeAmt(income);
-        setExpenseAmt(exp);
-    }, [expenses]);
-
-    const deleteExpens = async (id) => {
-        try {
-            const url = `${APIUrl}/expenses/${id}`;
-            const response = await fetch(url, {
-                method: "DELETE",
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-
-            if (response.status === 403) {
-                localStorage.removeItem('token');
-                navigate('/login');
-                return;
-            }
-
-            const result = await response.json();
-            handleSuccess(result?.message);
-            setExpenses(result.data);
-        } catch (err) {
-            handleError(err);
-        }
-    };
-
+    // ✅ Fetch expenses from backend
     const fetchExpenses = async () => {
         try {
-            const url = `${APIUrl}/expenses`;
-            const response = await fetch(url, {
-                method: "GET",
+            const response = await fetch(`https://expenzo-cmja.onrender.com/expenses`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': localStorage.getItem('token') // 🛠 FIX: Send plain token
                 }
             });
 
@@ -78,19 +44,19 @@ function Home() {
             }
 
             const result = await response.json();
-            setExpenses(result.data);
+            setExpenses(result.data); // ✅ Save data to state
         } catch (err) {
-            handleError(err);
+            handleError(err.message || 'Failed to fetch expenses');
         }
     };
 
+    // ✅ Add new expense
     const addTransaction = async (data) => {
         try {
-            const url = `https://expenzo-cmja.onrender.com/expenses`;
-            const response = await fetch(url, {
-                method: "POST",
+            const response = await fetch(`${APIUrl}/expenses`, {
+                method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': localStorage.getItem('token'), // 🛠 FIX
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
@@ -104,15 +70,57 @@ function Home() {
 
             const result = await response.json();
             handleSuccess(result?.message);
-            setExpenses(result.data);
+            setExpenses(result.data); // ✅ Update UI
         } catch (err) {
-            handleError(err);
+            handleError(err.message || 'Failed to add expense');
         }
     };
 
+    // ✅ Delete an expense
+    const deleteExpens = async (id) => {
+        try {
+            const response = await fetch(`${APIUrl}/expenses/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': localStorage.getItem('token') // 🛠 FIX
+                }
+            });
+
+            if (response.status === 403) {
+                localStorage.removeItem('token');
+                navigate('/login');
+                return;
+            }
+
+            const result = await response.json();
+            handleSuccess(result?.message);
+            setExpenses(result.data); // ✅ Update UI
+        } catch (err) {
+            handleError(err.message || 'Failed to delete expense');
+        }
+    };
+
+    // ✅ Recalculate income and expense totals whenever list changes
     useEffect(() => {
-        fetchExpenses();
-    }, []);
+        const amounts = expenses.map(item => item.amount);
+        const income = amounts.filter(item => item > 0)
+            .reduce((acc, item) => acc + item, 0);
+        const exp = amounts.filter(item => item < 0)
+            .reduce((acc, item) => acc + item, 0) * -1;
+
+        setIncomeAmt(income);
+        setExpenseAmt(exp);
+    }, [expenses]);
+
+    // ✅ Logout
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('loggedInUser');
+        handleSuccess('User Logged out');
+        setTimeout(() => {
+            navigate('/login');
+        }, 1000);
+    };
 
     return (
         <div>
