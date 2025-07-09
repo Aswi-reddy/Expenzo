@@ -11,17 +11,24 @@ require('dotenv').config();
 require('./Models/db');
 const PORT = process.env.PORT || 8080;
 
+// Health check route
 app.get('/ping', (req, res) => {
     res.send('PONG');
 });
 
+// Middleware
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: 'https://expenzo-beta.vercel.app',
+  credentials: true
+}));
+
+// Routes
 app.use('/auth', AuthRouter);
 app.use('/products', ProductRouter);
-app.use('/expenses', ensureAuthenticated, ExpenseRouter)
+app.use('/expenses', ensureAuthenticated, ExpenseRouter);
 
-
+// Start server
 app.listen(PORT, () => {
-    console.log(`Server is running on ${PORT}`)
-})
+    console.log(`Server is running on ${PORT}`);
+});

@@ -62,7 +62,7 @@ function Home() {
 
     const fetchExpenses = async () => {
         try {
-            const url = `${APIUrl}/expenses`;
+            const url = `https://expenzo-cmja.onrender.com/expenses`;
             const headers = {
                 headers: {
                     'Authorization': localStorage.getItem('token')
