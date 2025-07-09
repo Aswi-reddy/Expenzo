@@ -39,7 +39,7 @@ function Home() {
 
     const deleteExpens = async (id) => {
         try {
-            const url = `${APIUrl}/expenses/${id}`;
+            const url = `https://expenzo-cmja.onrender.com/expenses/${id}`;
             const response = await fetch(url, {
                 method: "DELETE",
                 headers: {
