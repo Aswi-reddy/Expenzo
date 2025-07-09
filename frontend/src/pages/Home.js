@@ -11,14 +11,11 @@ function Home() {
     const [expenses, setExpenses] = useState([]);
     const [incomeAmt, setIncomeAmt] = useState(0);
     const [expenseAmt, setExpenseAmt] = useState(0);
-
     const navigate = useNavigate();
 
-    // ✅ Fetch user info and expenses on component mount
     useEffect(() => {
-        const token = localStorage.getItem('token');
         const user = localStorage.getItem('loggedInUser');
-
+        const token = localStorage.getItem('token');
         if (!token || !user) {
             navigate('/login');
         } else {
@@ -27,99 +24,85 @@ function Home() {
         }
     }, []);
 
-    // ✅ Fetch expenses from backend
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('loggedInUser');
+        handleSuccess('Logged out successfully');
+        setTimeout(() => navigate('/login'), 1000);
+    };
+
+    const calculateAmounts = (list) => {
+        const amounts = list.map(item => item.amount);
+        const income = amounts.filter(a => a > 0).reduce((a, b) => a + b, 0);
+        const expense = amounts.filter(a => a < 0).reduce((a, b) => a + b, 0) * -1;
+        setIncomeAmt(income);
+        setExpenseAmt(expense);
+    };
+
     const fetchExpenses = async () => {
         try {
             const response = await fetch(`https://expenzo-cmja.onrender.com/expenses`, {
-                method: 'GET',
                 headers: {
-                    'Authorization': localStorage.getItem('token') // 🛠 FIX: Send plain token
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-
             if (response.status === 403) {
-                localStorage.removeItem('token');
+                localStorage.clear();
                 navigate('/login');
                 return;
             }
-
             const result = await response.json();
-            setExpenses(result.data); // ✅ Save data to state
+            setExpenses(result.data || []);
+            calculateAmounts(result.data || []);
         } catch (err) {
-            handleError(err.message || 'Failed to fetch expenses');
+            handleError(err);
         }
     };
 
-    // ✅ Add new expense
     const addTransaction = async (data) => {
         try {
             const response = await fetch(`${APIUrl}/expenses`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': localStorage.getItem('token'), // 🛠 FIX
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: JSON.stringify(data)
             });
-
             if (response.status === 403) {
-                localStorage.removeItem('token');
+                localStorage.clear();
                 navigate('/login');
                 return;
             }
-
             const result = await response.json();
             handleSuccess(result?.message);
-            setExpenses(result.data); // ✅ Update UI
+            setExpenses(result.data || []);
+            calculateAmounts(result.data || []);
         } catch (err) {
-            handleError(err.message || 'Failed to add expense');
+            handleError(err);
         }
     };
 
-    // ✅ Delete an expense
     const deleteExpens = async (id) => {
         try {
             const response = await fetch(`${APIUrl}/expenses/${id}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': localStorage.getItem('token') // 🛠 FIX
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-
             if (response.status === 403) {
-                localStorage.removeItem('token');
+                localStorage.clear();
                 navigate('/login');
                 return;
             }
-
             const result = await response.json();
             handleSuccess(result?.message);
-            setExpenses(result.data); // ✅ Update UI
+            setExpenses(result.data || []);
+            calculateAmounts(result.data || []);
         } catch (err) {
-            handleError(err.message || 'Failed to delete expense');
+            handleError(err);
         }
-    };
-
-    // ✅ Recalculate income and expense totals whenever list changes
-    useEffect(() => {
-        const amounts = expenses.map(item => item.amount);
-        const income = amounts.filter(item => item > 0)
-            .reduce((acc, item) => acc + item, 0);
-        const exp = amounts.filter(item => item < 0)
-            .reduce((acc, item) => acc + item, 0) * -1;
-
-        setIncomeAmt(income);
-        setExpenseAmt(exp);
-    }, [expenses]);
-
-    // ✅ Logout
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('loggedInUser');
-        handleSuccess('User Logged out');
-        setTimeout(() => {
-            navigate('/login');
-        }, 1000);
     };
 
     return (
@@ -128,7 +111,6 @@ function Home() {
                 <h1>Welcome {loggedInUser}</h1>
                 <button onClick={handleLogout}>Logout</button>
             </div>
-
             <ExpenseDetails incomeAmt={incomeAmt} expenseAmt={expenseAmt} />
             <ExpenseForm addTransaction={addTransaction} />
             <ExpenseTable expenses={expenses} deleteExpens={deleteExpens} />
