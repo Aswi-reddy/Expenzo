@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { APIUrl, handleError, handleSuccess } from '../utils';
 import { ToastContainer } from 'react-toastify';
@@ -15,104 +15,104 @@ function Home() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        setLoggedInUser(localStorage.getItem('loggedInUser'))
-    }, [])
+        setLoggedInUser(localStorage.getItem('loggedInUser'));
+    }, []);
 
-    const handleLogout = (e) => {
+    const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('loggedInUser');
-        handleSuccess('User Loggedout');
+        handleSuccess('User Logged out');
         setTimeout(() => {
             navigate('/login');
-        }, 1000)
-    }
+        }, 1000);
+    };
+
     useEffect(() => {
         const amounts = expenses.map(item => item.amount);
         const income = amounts.filter(item => item > 0)
-            .reduce((acc, item) => (acc += item), 0);
+            .reduce((acc, item) => acc + item, 0);
         const exp = amounts.filter(item => item < 0)
-            .reduce((acc, item) => (acc += item), 0) * -1;
+            .reduce((acc, item) => acc + item, 0) * -1;
         setIncomeAmt(income);
         setExpenseAmt(exp);
-    }, [expenses])
+    }, [expenses]);
 
     const deleteExpens = async (id) => {
         try {
             const url = `${APIUrl}/expenses/${id}`;
-            const headers = {
+            const response = await fetch(url, {
+                method: "DELETE",
                 headers: {
-                    'Authorization': localStorage.getItem('token')
-                },
-                method: "DELETE"
-            }
-            const response = await fetch(url, headers);
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
             if (response.status === 403) {
                 localStorage.removeItem('token');
                 navigate('/login');
-                return
+                return;
             }
+
             const result = await response.json();
-            handleSuccess(result?.message)
-            console.log('--result', result.data);
+            handleSuccess(result?.message);
             setExpenses(result.data);
         } catch (err) {
             handleError(err);
         }
-    }
+    };
 
     const fetchExpenses = async () => {
         try {
-            const url = `https://expenzo-cmja.onrender.com/expenses`;
-            const headers = {
+            const url = `${APIUrl}/expenses`;
+            const response = await fetch(url, {
+                method: "GET",
                 headers: {
-                    'Authorization': localStorage.getItem('token')
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
-            }
-            const response = await fetch(url, headers);
+            });
+
             if (response.status === 403) {
                 localStorage.removeItem('token');
                 navigate('/login');
-                return
+                return;
             }
+
             const result = await response.json();
-            console.log('--result', result.data);
             setExpenses(result.data);
         } catch (err) {
             handleError(err);
         }
-    }
-
-
+    };
 
     const addTransaction = async (data) => {
         try {
             const url = `${APIUrl}/expenses`;
-            const headers = {
+            const response = await fetch(url, {
+                method: "POST",
                 headers: {
-                    'Authorization': localStorage.getItem('token'),
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'application/json'
                 },
-                method: "POST",
                 body: JSON.stringify(data)
-            }
-            const response = await fetch(url, headers);
+            });
+
             if (response.status === 403) {
                 localStorage.removeItem('token');
                 navigate('/login');
-                return
+                return;
             }
+
             const result = await response.json();
-            handleSuccess(result?.message)
-            console.log('--result', result.data);
+            handleSuccess(result?.message);
             setExpenses(result.data);
         } catch (err) {
             handleError(err);
         }
-    }
+    };
 
     useEffect(() => {
-        fetchExpenses()
-    }, [])
+        fetchExpenses();
+    }, []);
 
     return (
         <div>
@@ -120,21 +120,13 @@ function Home() {
                 <h1>Welcome {loggedInUser}</h1>
                 <button onClick={handleLogout}>Logout</button>
             </div>
-            <ExpenseDetails
-                incomeAmt={incomeAmt}
-                expenseAmt={expenseAmt}
-            />
 
-            <ExpenseForm
-                addTransaction={addTransaction} />
-
-            <ExpenseTable
-                expenses={expenses}
-                deleteExpens={deleteExpens}
-            />
+            <ExpenseDetails incomeAmt={incomeAmt} expenseAmt={expenseAmt} />
+            <ExpenseForm addTransaction={addTransaction} />
+            <ExpenseTable expenses={expenses} deleteExpens={deleteExpens} />
             <ToastContainer />
         </div>
-    )
+    );
 }
 
-export default Home
+export default Home;
