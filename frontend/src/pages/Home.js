@@ -86,7 +86,7 @@ function Home() {
 
     const addTransaction = async (data) => {
         try {
-            const url = `${APIUrl}/expenses`;
+            const url = `https://expenzo-cmja.onrender.com/expenses`;
             const response = await fetch(url, {
                 method: "POST",
                 headers: {
